@@ -1,0 +1,27 @@
+Constantes:
+Pourquoi avoir choisi des constantes?
+-Lisibilité et compréhension du code beaucoup plus simple pour soi et d'autres personnes
+-éviter de rechercher les autres occurrence pour avoir la valeur
+-évite de devoir changer tout le code au cas où il y a quelque chose de faux
+
+Variables globales:
+-Simplicité et accessibilité dans le contexte du car les états doivent êtres partagés entre plusieurs fonctions
+
+Forme: 
+Utilisation de dictionnaire:
+-Simplicité, lisibilité et flexibilité, elle permettent de regrouper différente propriété (forme = matrice, couleur = string (chaine de caractère) et position = entiers (int))
+Sauvegarde:
+Pourquoi avoir choisi le JSON et pas un autre format comme le TXT:
+Le format JSON est adapté aux structures complexes, et permet de sauvegarder des dictionnaire et listes de plus un fichier JSON est facilement lisible par les humain est bien structuré et supporté nativement par python.
+
+Comment marche celle-ci, en bref on crée un dictionnaire les variables globales et comme dans la partie if name on charge directement la boucle principale, on charge ces variables globales changant l'état du jeu
+
+Supporté nativement par python -> facilite le travail car il correspond aux structures python (liste dico etc) et est gérer par des outils déjà intégré à Python sans effort de conversion ou de manipulation supplémentaire
+
+De l'autre coté le fichier txt est peu structuré pour des données complexes comme la grille
+
+On aurait aussi pu utiliser un fichier binaire Pickle mais il est moins portable et peut provoquer des problèmes entre le version de python ce qu'on veut éviter à tout prix
+
+Pourrissement fonctionnement:
+cherche dans la matrice grille, les 1 et en met un au hasard à 0 enlevant un bloc sans changer sa graviter vu que le forme n'a plus de dépendance à collision()
+dans le menu on met l'option de changer le temps et on crée un chrono en variable globale pour dire que à chaque fois que le chrono atteint x nombre enlève un bloc au hasard puis reset le chrono à 0
