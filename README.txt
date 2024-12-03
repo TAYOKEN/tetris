@@ -1,5 +1,4 @@
 README.txt
-Yanis BOUKAYOUH et Wali Wassagoua
 Bonus Implémenté
 
     Sauvegarde des données : Le programme permet de sauvegarder la progression du joueur. Cette fonctionnalité enregistre les informations essentielles pour que le joueur puisse reprendre là où il s'est arrêté, même après avoir quitté le jeu.
