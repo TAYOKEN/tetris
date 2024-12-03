@@ -35,6 +35,7 @@ pause = False
 tps_pourr = 0
 dernier_temps_pourri = time.time()  # Initialisation du chrono avant la boucle
 scoreParniv = False
+game_over = False
 
 
 def menu():
@@ -161,22 +162,29 @@ def gerer_clavier():
     if ev and fltk.type_ev(ev) == "Touche":
         touche = fltk.touche(ev)
         ligne, colonne = forme_actuelle["position"]
-        
-        if touche == "Left" and colonne > 0:
-            forme_actuelle["position"] = (ligne, colonne - 1)
-        elif touche == "Right" and colonne + len(forme_actuelle["forme"][0]) < LARGEUR_GRILLE:
-            forme_actuelle["position"] = (ligne, colonne + 1)
+
+        if touche == "Left":
+            nouvelle_position = (ligne, colonne - 1)
+            if not collisions(forme_actuelle["forme"], nouvelle_position):
+                forme_actuelle["position"] = nouvelle_position
+        elif touche == "Right":
+            nouvelle_position = (ligne, colonne + 1)
+            if not collisions(forme_actuelle["forme"], nouvelle_position):
+                forme_actuelle["position"] = nouvelle_position
         elif touche == "Down":
-            forme_actuelle["position"] = (ligne + 1, colonne)
+            nouvelle_position = (ligne + 1, colonne)
+            if not collisions(forme_actuelle["forme"], nouvelle_position):
+                forme_actuelle["position"] = nouvelle_position
         elif touche == "Up":
             nouvelle_forme = rotation_horaire(forme_actuelle["forme"])
             if not collisions(nouvelle_forme, (ligne, colonne)):
                 forme_actuelle["forme"] = nouvelle_forme
         elif touche == "q":
             return False
-        elif fltk.touche(ev) == "Escape":
-                pause_menu()
+        elif touche == "Escape":
+            pause_menu()
     return True
+
 
 def rotation_horaire(forme):
     """Fait tourner une forme de 45° dans le sens horaire."""
@@ -193,16 +201,19 @@ def rotation_horaire(forme):
 
 
 def collisions(forme, position):
-    """Vérifie si une collision se produit à une nouvelle position."""
+    """Vérifie si une collision se produit pour une forme à une position donnée."""
     ligne, colonne = position
     for i, ligne_forme in enumerate(forme):
         for j, case in enumerate(ligne_forme):
             if case == 1:
-                if colonne + j < 0 or colonne + j >= LARGEUR_GRILLE or ligne + i >= HAUTEUR_GRILLE:
-                    return True  
+                if ligne + i >= HAUTEUR_GRILLE:
+                    return True
+                if colonne + j < 0 or colonne + j >= LARGEUR_GRILLE:
+                    return True
                 if grille[ligne + i][colonne + j] == 1:
-                    return True  
+                    return True
     return False
+
 
 def ligne_complete():
     global score, niveau, vitesse, grille, scoreParniv
@@ -280,30 +291,57 @@ def pause_menu():
                 
 def mettre_a_jour_forme():
     """Fait descendre la forme actuelle automatiquement."""
-    global forme_actuelle, grille, forme_suiv
+    global forme_actuelle, grille, forme_suiv, game_over
+
     if forme_actuelle is not None:
         ligne, colonne = forme_actuelle["position"]
-        
-        if collisions(forme_actuelle["forme"], (ligne + 1, colonne)):
+        nouvelle_position = (ligne + 1, colonne)
+
+        if collisions(forme_actuelle["forme"], nouvelle_position):
             for i, ligne_forme in enumerate(forme_actuelle["forme"]):
                 for j, case in enumerate(ligne_forme):
                     if case == 1:
-                        grille[ligne + i][colonne + j] = 1  
+                        if ligne + i < HAUTEUR_GRILLE:
+                            grille[ligne + i][colonne + j] = 1
+
+            if ligne == 0:
+                game_over = True
+                return
 
             forme_actuelle = forme_suiv
-            forme_suiv = prochain_forme()  
+            forme_suiv = nouvelle_forme()
         else:
-            forme_actuelle["position"] = (ligne + 1, colonne)
+            # Sinon, descendre la forme
+            forme_actuelle["position"] = nouvelle_position
 
-    ligne_complete()
+    ligne_complete()  
 
 
-     
+def perdu():
+    global game_over
+    if game_over:
+        fltk.rectangle(0, 0, LARGEUR_ZONE, HAUTEUR_ZONE, remplissage="black")
+        fltk.texte(LARGEUR_ZONE // 2, HAUTEUR_ZONE // 3, "Game Over", couleur="red", taille=16, ancrage="center")
+        fltk.attente(1)
+        fltk.ferme_fenetre
+
+def verifie_fin_de_jeu():
+    """
+    Vérifie si le jeu est terminé en tentant de placer une nouvelle forme.
+    Retourne True si une collision est détectée au sommet de la grille.
+    """
+    global forme_actuelle
+    ligne, colonne = forme_actuelle["position"]
+    for i, ligne_forme in enumerate(forme_actuelle["forme"]):
+        for j, case in enumerate(ligne_forme):
+            if case == 1 and grille[ligne + i][colonne + j] == 1:
+                return True
+    return False
 
 
 def boucle_principale():
     """Boucle principale du jeu."""
-    global forme_actuelle, forme_suiv, tps_pourr,dernier_temps_pourri
+    global forme_actuelle, forme_suiv, tps_pourr,dernier_temps_pourri, grille, game_over
     forme_suiv = nouvelle_forme()  
     
 
@@ -328,6 +366,13 @@ def boucle_principale():
             )
 
         mettre_a_jour_forme()
+
+        if verifie_fin_de_jeu():
+            game_over = True
+            perdu()
+            break  # Sortir de la boucle principale
+
+
 
         if tps_pourr > 0 and time.time() - dernier_temps_pourri >= tps_pourr:
             positions_occupees = [
@@ -360,7 +405,6 @@ def boucle_principale():
         # Rafraîchir l'affichage
         fltk.mise_a_jour()
         fltk.attente(vitesse)  # Pause entre chaque descente
-
 
 
 if __name__ == "__main__":
