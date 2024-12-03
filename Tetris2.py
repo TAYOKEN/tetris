@@ -22,7 +22,7 @@ FORMES = [
     [[1, 1, 1], [1, 0, 0]],  # L
     [[1, 1, 1], [0, 0, 1]],  # J
 ]
-COULEURS = ["red", "blue", "yellow"]
+COULEURS = ["red", "blue", "yellow","cyan","green","orange"]
 
 # Variables globales
 forme_actuelle = None
@@ -34,7 +34,7 @@ forme_suiv = None
 pause = False
 tps_pourr = 0
 dernier_temps_pourri = time.time()  # Initialisation du chrono avant la boucle
-
+scoreParniv = False
 
 
 def menu():
@@ -179,17 +179,14 @@ def gerer_clavier():
     return True
 
 def rotation_horaire(forme):
-    """Fait tourner une forme de 90° dans le sens horaire."""
-    # Dimensions de la matrice d'origine
-    hauteur = len(forme)       # Nombre de lignes
-    largeur = len(forme[0])    # Nombre de colonnes
+    """Fait tourner une forme de 45° dans le sens horaire."""
+    hauteur = len(forme)      
+    largeur = len(forme[0])    
 
-    # Initialiser la nouvelle matrice vide (de dimensions inversées)
     nouvelle_forme = [[0] * hauteur for _ in range(largeur)]
 
-    # Remplir la nouvelle matrice avec les valeurs de la matrice d'origine
-    for j in range(largeur):  # Parcours des colonnes
-        for i in range(hauteur):  # Parcours des lignes
+    for j in range(largeur):  
+        for i in range(hauteur):
             nouvelle_forme[j][i] = forme[hauteur - 1 - i][j]
 
     return nouvelle_forme
@@ -208,7 +205,7 @@ def collisions(forme, position):
     return False
 
 def ligne_complete():
-    global score, niveau, vitesse, grille
+    global score, niveau, vitesse, grille, scoreParniv
     nouvelle_grille = []
     for ligne in grille:
         if any(carre is None for carre in ligne):
@@ -219,16 +216,27 @@ def ligne_complete():
         nouvelle_grille.insert(0, [None]* LARGEUR_GRILLE)
     grille[:]= nouvelle_grille
     
-    if ligne_efface == 1:
-        score += 100
-    elif ligne_efface == 2:
-        score += 250
-    elif ligne_efface == 3:
-        score += 400
-    elif ligne_efface == 4:
-        score += 500
+    if not scoreParniv:
+        if ligne_efface == 1:
+            score += 100
+        elif ligne_efface == 2:
+            score += 250
+        elif ligne_efface == 3:
+            score += 400
+        elif ligne_efface == 4:
+            score += 500
+        niveau = 1 + score // 500
 
-    niveau = 1 + score // 500
+    if scoreParniv:
+        if ligne_efface == 1:
+            score += 25 *1* niveau
+        elif ligne_efface == 2:
+            score += 50* 1 * niveau
+        elif ligne_efface == 3:
+            score += 75 * 1 * niveau
+        elif ligne_efface == 4:
+            score += 100 * 1 * niveau
+        niveau = 1 + score // (500 * 1 * niveau)
 
     vitesse= GRAVITE * (0.9 ** (niveau - 1))
 
@@ -321,9 +329,7 @@ def boucle_principale():
 
         mettre_a_jour_forme()
 
-        # Gestion du pourrissement
         if tps_pourr > 0 and time.time() - dernier_temps_pourri >= tps_pourr:
-            # Mettre à jour une position occupée aléatoire
             positions_occupees = [
                 (i, j) for i in range(HAUTEUR_GRILLE) for j in range(LARGEUR_GRILLE) if grille[i][j] == 1
             ]
@@ -369,6 +375,9 @@ if __name__ == "__main__":
         print ('Mode pourrisement activé\n')
         tps_pourr = int(input('Choisissez le temps de pourrissement entre chaque bloc:  '))
         print(f'Temps entre chaque effacement {tps_pourr}')
+    elif choix == 3:
+        print ('Mode Score par niveau activé\n')
+        scoreParniv = True
         
 
     boucle_principale()
