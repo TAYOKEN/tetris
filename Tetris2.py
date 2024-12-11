@@ -2,10 +2,11 @@ import fltk
 import random
 import json
 import time
+import os
 # Constantes
 LARGEUR_GRILLE = 10
 HAUTEUR_GRILLE = 20
-TAILLE_CASE = 20
+TAILLE_CASE = 28
 GRAVITE = 0.15
 LONGUEUR_INFO = 5
 HAUTEUR_INFO = 10
@@ -26,7 +27,7 @@ COULEURS = ["red", "blue", "yellow","cyan","green","orange"]
 
 # Variables globales
 forme_actuelle = None
-grille = [[0 for _ in range(LARGEUR_GRILLE)] for _ in range(HAUTEUR_GRILLE)]
+grille = [[None for _ in range(LARGEUR_GRILLE)] for _ in range(HAUTEUR_GRILLE)]
 score = 0
 niveau = 1
 vitesse = GRAVITE
@@ -36,12 +37,14 @@ tps_pourr = 0
 dernier_temps_pourri = time.time()  # Initialisation du chrono avant la boucle
 scoreParniv = False
 game_over = False
+jeu_en_cours = True
 
+POLYOMINOS_PERSONNALISES = []
 
 def menu():
     """Affiche le menu principal permettant de démarrer une nouvelle partie ou de charger une partie sauvegardée."""
     choix = 0
-    options = ["Nouveau Jeu", "Charger Partie","Pourrissement","Points Différent par niveau"]
+    options = ["Nouveau Jeu", "Charger Partie", "Pourrissement", "Points par Niveau", "Charger Polyominos"]
     while True:
         fltk.efface_tout()
         fltk.rectangle(0, 0, (LARGEUR_GRILLE + LONGUEUR_INFO) * TAILLE_CASE, HAUTEUR_GRILLE * TAILLE_CASE, remplissage="black")
@@ -92,7 +95,7 @@ def sauvegarde(nom_fichier="sauvegarde.json"):
     }
 
     with open(nom_fichier, "w") as fichier:
-        json.dump(etat_jeu, fichier, indent=4)
+        json.dump(etat_jeu, fichier)
     print(f"Partie sauvegardée dans {nom_fichier}")
 
 def charger_sauv(nom_fichier="sauvegarde.json"):
@@ -119,10 +122,14 @@ def charger_sauv(nom_fichier="sauvegarde.json"):
         print(f"Erreur de lecture du fichier {nom_fichier}.")
 
 def nouvelle_forme():
-    """Crée une nouvelle forme avec une position initiale."""
-    forme = random.choice(FORMES)
+    """Crée une nouvelle forme aléatoire avec une position initiale"""
+    global POLYOMINOS_PERSONNALISES
+    if POLYOMINOS_PERSONNALISES:
+        forme = random.choice(POLYOMINOS_PERSONNALISES)
+    else:
+        forme = random.choice(FORMES)
     couleur = random.choice(COULEURS)
-    position = (0, LARGEUR_GRILLE // 2 - len(forme[0]) // 2)  # Position initiale au sommet
+    position = (0, LARGEUR_GRILLE // 2 - len(forme[0]) // 2)
     return {"forme": forme, "couleur": couleur, "position": position}
 
 def prochain_forme():
@@ -144,7 +151,7 @@ def prochain_forme():
 
                 
 def dessiner_forme(forme, couleur, position):
-    """Dessine une forme à l'écran."""
+    """Dessine une forme à l'écran à sa position donnée."""
     ligne, colonne = position
     for i, ligne_forme in enumerate(forme):
         for j, case in enumerate(ligne_forme):
@@ -155,9 +162,10 @@ def dessiner_forme(forme, couleur, position):
                 y2 = y1 + TAILLE_CASE
                 fltk.rectangle(x1, y1, x2, y2, remplissage=couleur)
 
+
 def gerer_clavier():
     """Gère les actions du clavier pour déplacer la forme."""
-    global forme_actuelle
+    global forme_actuelle, jeu_en_cours
     ev = fltk.donne_ev()
     if ev and fltk.type_ev(ev) == "Touche":
         touche = fltk.touche(ev)
@@ -180,25 +188,24 @@ def gerer_clavier():
             if not collisions(nouvelle_forme, (ligne, colonne)):
                 forme_actuelle["forme"] = nouvelle_forme
         elif touche == "q":
-            return False
+            jeu_en_cours = False 
         elif touche == "Escape":
             pause_menu()
     return True
 
 
 def rotation_horaire(forme):
-    """Fait tourner une forme de 45° dans le sens horaire."""
-    hauteur = len(forme)      
-    largeur = len(forme[0])    
-
-    nouvelle_forme = [[0] * hauteur for _ in range(largeur)]
-
-    for j in range(largeur):  
-        for i in range(hauteur):
-            nouvelle_forme[j][i] = forme[hauteur - 1 - i][j]
-
+    """Fait tourner une forme de 90° dans le sens horaire."""
+    if not forme or not all(isinstance(ligne, list) and len(ligne) == len(forme[0]) for ligne in forme):
+        print("Erreur : Forme invalide pour la rotation (lignes de longueurs différentes ou forme vide).")
+        return forme  
+    hauteur = len(forme)
+    largeur = len(forme[0])
+    nouvelle_forme = [[0] * hauteur for _ in range(largeur)]  
+    for i in range(hauteur):
+        for j in range(largeur):
+            nouvelle_forme[j][hauteur - 1 - i] = forme[i][j]  
     return nouvelle_forme
-
 
 def collisions(forme, position):
     """Vérifie si une collision se produit pour une forme à une position donnée."""
@@ -206,13 +213,12 @@ def collisions(forme, position):
     for i, ligne_forme in enumerate(forme):
         for j, case in enumerate(ligne_forme):
             if case == 1:
-                if ligne + i >= HAUTEUR_GRILLE:
+                if ligne + i >= HAUTEUR_GRILLE or colonne + j < 0 or colonne + j >= LARGEUR_GRILLE:
                     return True
-                if colonne + j < 0 or colonne + j >= LARGEUR_GRILLE:
-                    return True
-                if grille[ligne + i][colonne + j] == 1:
+                if grille[ligne + i][colonne + j] is not None:
                     return True
     return False
+
 
 
 def ligne_complete():
@@ -225,7 +231,7 @@ def ligne_complete():
     ligne_efface= HAUTEUR_GRILLE - len(nouvelle_grille)
     for _ in range(ligne_efface):
         nouvelle_grille.insert(0, [None]* LARGEUR_GRILLE)
-    grille[:]= nouvelle_grille
+    grille= nouvelle_grille
     
     if not scoreParniv:
         if ligne_efface == 1:
@@ -255,22 +261,22 @@ def ligne_complete():
 
 def afficher_info():
     """Affiche les informations à gauche de l'écran."""
+    global tps_pourr
     fltk.rectangle(0, 0, LONGUEUR_INFO * TAILLE_CASE, HAUTEUR_ZONE, remplissage="black")
     fltk.texte(LONGUEUR_INFO * TAILLE_CASE // 2, 10, f"Score : {score}", couleur="white", taille=14, ancrage="center")
-    fltk.texte(LONGUEUR_INFO * TAILLE_CASE // 2, 30, f"Niveau : {niveau}", couleur="white", taille=14, ancrage="center")
+    fltk.texte(LONGUEUR_INFO * TAILLE_CASE // 2, 30, f"Niveau : {niveau}", couleur="white", taille=14, ancrage="center")        
+    fltk.texte(LONGUEUR_INFO * TAILLE_CASE // 2, 50, f"Pourrisement : {tps_pourr}", couleur="white", taille=14, ancrage="center")
     fltk.ligne(LONGUEUR_INFO * TAILLE_CASE, 0, LONGUEUR_INFO * TAILLE_CASE, HAUTEUR_ZONE, couleur="white", epaisseur=4)
 
 def pause_menu():
     """Affiche le menu de pause avec les options de sauvegarde et de quitter."""
-    global pause
+    global pause, jeu_en_cours
     pause = True
     while pause:
         fltk.rectangle(0, 0, LARGEUR_ZONE, HAUTEUR_ZONE, remplissage="black")
-
         fltk.texte(LARGEUR_ZONE // 2, HAUTEUR_ZONE // 3, "Pause", couleur="white", taille=16, ancrage="center")
         fltk.texte(LARGEUR_ZONE // 2, HAUTEUR_ZONE // 2.5, "Appuyez sur Échap pour continuer", couleur="white", taille=12, ancrage="center")
         fltk.texte(LARGEUR_ZONE // 2, HAUTEUR_ZONE // 2, "Appuyez sur S pour sauvegarder", couleur="white", taille=12, ancrage="center")
-        fltk.texte(LARGEUR_ZONE // 2, HAUTEUR_ZONE // 1.8, "Appuyez sur L pour charger", couleur="white", taille=12, ancrage="center")
         fltk.texte(LARGEUR_ZONE // 2, HAUTEUR_ZONE // 1.6, "Appuyez sur Q pour quitter", couleur="white", taille=12, ancrage="center")
 
         fltk.mise_a_jour()
@@ -281,11 +287,10 @@ def pause_menu():
             if touche == "Escape":
                 pause = False
             elif touche == "q":
-                fltk.ferme_fenetre()
+                jeu_en_cours = False
+                pause = False
             elif touche == "s":
                 sauvegarde()
-            elif touche == "l":
-                charger_sauv()
 
 
                 
@@ -300,9 +305,8 @@ def mettre_a_jour_forme():
         if collisions(forme_actuelle["forme"], nouvelle_position):
             for i, ligne_forme in enumerate(forme_actuelle["forme"]):
                 for j, case in enumerate(ligne_forme):
-                    if case == 1:
-                        if ligne + i < HAUTEUR_GRILLE:
-                            grille[ligne + i][colonne + j] = 1
+                    if case == 1 and ligne + i < HAUTEUR_GRILLE:
+                        grille[ligne + i][colonne + j] = forme_actuelle["couleur"]  # Stocker la couleur
 
             if ligne == 0:
                 game_over = True
@@ -311,11 +315,9 @@ def mettre_a_jour_forme():
             forme_actuelle = forme_suiv
             forme_suiv = nouvelle_forme()
         else:
-            # Sinon, descendre la forme
             forme_actuelle["position"] = nouvelle_position
 
-    ligne_complete()  
-
+    ligne_complete()  # Vérifie et supprime les lignes complètes
 
 def perdu():
     global game_over
@@ -341,23 +343,35 @@ def verifie_fin_de_jeu():
 
 def boucle_principale():
     """Boucle principale du jeu."""
-    global forme_actuelle, forme_suiv, tps_pourr,dernier_temps_pourri, grille, game_over
-    forme_suiv = nouvelle_forme()  
-    
+    global forme_actuelle, forme_suiv, game_over,dernier_temps_pourri, jeu_en_cours
 
-    while True:
+    forme_suiv = nouvelle_forme()
+
+    while jeu_en_cours:
         fltk.efface_tout()
-
+        if tps_pourr > 0 and time.time() - dernier_temps_pourri >= tps_pourr:
+            positions_occupees = [
+                (i, j) for i in range(HAUTEUR_GRILLE) for j in range(LARGEUR_GRILLE) if grille[i][j] != None
+            ]
+            if positions_occupees:
+                ligne, colonne = random.choice(positions_occupees)
+                grille[ligne][colonne] = None
+            dernier_temps_pourri = time.time()  # Réinitialisation du chrono après l'action
+        # Dessine le fond noir
         fltk.rectangle(0, 0, LARGEUR_ZONE, HAUTEUR_ZONE, remplissage="black")
 
+        # Gère le clavier
         if not gerer_clavier():
             break
 
+        # Initialise les formes si elles ne sont pas définies
         if forme_actuelle is None:
             forme_actuelle = forme_suiv
             forme_suiv = nouvelle_forme()
         if forme_suiv is None:
             forme_suiv = nouvelle_forme()
+
+        # Dessine la forme en mouvement
         if forme_actuelle is not None:
             dessiner_forme(
                 forme_actuelle["forme"],
@@ -365,46 +379,66 @@ def boucle_principale():
                 forme_actuelle["position"],
             )
 
+        # Met à jour la forme (descente)
         mettre_a_jour_forme()
-
-        if verifie_fin_de_jeu():
-            game_over = True
-            perdu()
-            break  # Sortir de la boucle principale
-
-
-
-        if tps_pourr > 0 and time.time() - dernier_temps_pourri >= tps_pourr:
-            positions_occupees = [
-                (i, j) for i in range(HAUTEUR_GRILLE) for j in range(LARGEUR_GRILLE) if grille[i][j] == 1
-            ]
-            if positions_occupees:
-                ligne, colonne = random.choice(positions_occupees)
-                grille[ligne][colonne] = 0
-            dernier_temps_pourri = time.time()  # Réinitialisation du chrono après l'action
 
         for i in range(HAUTEUR_GRILLE):
             for j in range(LARGEUR_GRILLE):
-                if grille[i][j] == 1:
-                    x1 = j * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE  
+                if grille[i][j] is not None:  # Si la cellule contient une couleur
+                    x1 = j * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE
                     y1 = i * TAILLE_CASE
                     x2 = x1 + TAILLE_CASE
                     y2 = y1 + TAILLE_CASE
-                    fltk.rectangle(x1, y1, x2, y2, remplissage="gray")
+                    fltk.rectangle(x1, y1, x2, y2, remplissage=grille[i][j])
 
-        for i in range(HAUTEUR_GRILLE + 1):  
+        for i in range(HAUTEUR_GRILLE + 1):
             fltk.ligne(LONGUEUR_INFO * TAILLE_CASE, i * TAILLE_CASE,
                        LARGEUR_GRILLE * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE, i * TAILLE_CASE, couleur="white")
-        for j in range(LARGEUR_GRILLE + 1):  
+        for j in range(LARGEUR_GRILLE + 1):
             fltk.ligne(j * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE, 0,
                        j * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE, HAUTEUR_GRILLE * TAILLE_CASE, couleur="white")
 
         afficher_info()
+
         prochain_forme()
 
-        # Rafraîchir l'affichage
         fltk.mise_a_jour()
-        fltk.attente(vitesse)  # Pause entre chaque descente
+        fltk.attente(vitesse)
+
+        if game_over:
+            perdu()
+            break
+
+
+def charger_polyominos(nom_fichier):
+    """
+    Charge les polyominos depuis un fichier texte.
+    Chaque polyomino est séparé par une ou plusieurs lignes vides.
+    """
+    if not os.path.isfile(nom_fichier):
+        print(f"Erreur : Le fichier {nom_fichier} n'existe pas.")
+        return []
+
+    with open(nom_fichier, "r") as fichier:
+        contenu = fichier.read().strip()
+
+    if not contenu:
+        print("Erreur : Le fichier est vide ou mal formaté.")
+        return []
+
+    polyominos = []
+    blocs = contenu.split("\n\n")  
+    for bloc in blocs:
+        try:
+            forme = [[1 if char == "+" else 0 for char in ligne] for ligne in bloc.split("\n")]
+            polyominos.append(forme)
+        except IndexError:
+            print("Erreur : Format incorrect dans le bloc suivant:\n" + bloc)
+            continue
+
+    if not polyominos:
+        print("Erreur : Aucun polyomino valide n'a été trouvé.")
+    return polyominos
 
 
 if __name__ == "__main__":
@@ -422,7 +456,14 @@ if __name__ == "__main__":
     elif choix == 3:
         print ('Mode Score par niveau activé\n')
         scoreParniv = True
-        
+    elif choix == 4:  # Option pour charger des polyominos
+        fichier = input("Entrez le nom du fichier contenant les polyominos : ")
+        POLYOMINOS_PERSONNALISES = charger_polyominos(fichier)
+        if POLYOMINOS_PERSONNALISES:
+            print(f"{len(POLYOMINOS_PERSONNALISES)} polyominos personnalisés chargés.")
+        else:
+            print("Aucun polyomino personnalisé chargé. Utilisation des formes par défaut.")
+
 
     boucle_principale()
     fltk.ferme_fenetre()
