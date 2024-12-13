@@ -25,3 +25,6 @@ On aurait aussi pu utiliser un fichier binaire Pickle mais il est moins portable
 Pourrissement fonctionnement:
 cherche dans la matrice grille, les 1 et en met un au hasard à 0 enlevant un bloc sans changer sa graviter vu que le forme n'a plus de dépendance à collision()
 dans le menu on met l'option de changer le temps et on crée un chrono en variable globale pour dire que à chaque fois que le chrono atteint x nombre enlève un bloc au hasard puis reset le chrono à 0
+
+Fonctionnement de la variante polyominos : 
+Nous lisons d'abord un fichier contenant les polyominos définis avec des grilles de + et on les convertit par un format compatible pour le programme, on lit le fichier, on sépare les polyominos, on convertit les + en 1 et les espaces en 0 et on uniformise ensuite les lignes pour pas qu'elles aient des longueurs différentes, ensuite on crée les nouvelles pièces dans le jeu en mettant les polyomino dans le choix des générationss de formes, et le reste est géré comme tout le reste du programme
