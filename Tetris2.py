@@ -44,7 +44,47 @@ POLYOMINOS_PERSONNALISES = []
 def menu():
     """Affiche le menu principal permettant de démarrer une nouvelle partie ou de charger une partie sauvegardée."""
     choix = 0
-    options = ["Nouveau Jeu", "Charger Partie", "Pourrissement", "Points par Niveau", "Charger Polyominos"]
+    options = ["Nouveau Jeu", "Charger Partie", "Variantes", "Bonus"]
+    while True:
+        fltk.efface_tout()
+        fltk.rectangle(0, 0, (LARGEUR_GRILLE + LONGUEUR_INFO) * TAILLE_CASE, HAUTEUR_GRILLE * TAILLE_CASE, remplissage="black")
+        fltk.texte(
+            (LARGEUR_GRILLE + LONGUEUR_INFO) * TAILLE_CASE // 2,
+            TAILLE_CASE * 3,
+            "Tetris",
+            couleur="white",
+            taille=24,
+            ancrage="center"
+        )
+
+        # Afficher les options
+        for i, option in enumerate(options):
+            couleur = "yellow" if i == choix else "white"
+            fltk.texte(
+                (LARGEUR_GRILLE + LONGUEUR_INFO) * TAILLE_CASE // 2,
+                TAILLE_CASE * (5 + i * 2),
+                option,
+                couleur=couleur,
+                taille=18,
+                ancrage="center"
+            )
+
+        fltk.mise_a_jour()
+
+        ev = fltk.donne_ev()
+        if ev and fltk.type_ev(ev) == "Touche":
+            touche = fltk.touche(ev)
+            if touche == "Down":
+                choix = (choix + 1) % len(options)
+            elif touche == "Up":
+                choix = (choix - 1) % len(options)
+            elif touche == "Return":
+                return choix  
+            
+def menu_variantes():
+    """Affiche le menu principal permettant de démarrer une nouvelle partie ou de charger une partie sauvegardée."""
+    choix = 0
+    options = ["Pourrissement", "Points par Niveau", "Charger Polyominos", "Retour"]
     while True:
         fltk.efface_tout()
         fltk.rectangle(0, 0, (LARGEUR_GRILLE + LONGUEUR_INFO) * TAILLE_CASE, HAUTEUR_GRILLE * TAILLE_CASE, remplissage="black")
@@ -317,8 +357,8 @@ def mettre_a_jour_forme():
         else:
             forme_actuelle["position"] = nouvelle_position
 
-    ligne_complete()  # Vérifie et supprime les lignes complètes
-
+    ligne_complete() 
+    
 def perdu():
     global game_over
     if game_over:
@@ -443,27 +483,58 @@ def charger_polyominos(nom_fichier):
 
 if __name__ == "__main__":
     fltk.cree_fenetre(LARGEUR_ZONE, HAUTEUR_ZONE)
-    choix = menu()
-    if choix == 0:  
-        print("Démarrage d'une nouvelle partie.")
-    elif choix == 1:  
-        print("Chargement d'une partie existante.")
-        charger_sauv()
-    elif choix == 2:
-        print ('Mode pourrisement activé\n')
-        tps_pourr = int(input('Choisissez le temps de pourrissement entre chaque bloc:  '))
-        print(f'Temps entre chaque effacement {tps_pourr}')
-    elif choix == 3:
-        print ('Mode Score par niveau activé\n')
-        scoreParniv = True
-    elif choix == 4:  # Option pour charger des polyominos
-        fichier = input("Entrez le nom du fichier contenant les polyominos : ")
-        POLYOMINOS_PERSONNALISES = charger_polyominos(fichier)
-        if POLYOMINOS_PERSONNALISES:
-            print(f"{len(POLYOMINOS_PERSONNALISES)} polyominos personnalisés chargés.")
+    
+    while True: 
+        choix = menu()
+        
+        if choix == 0:  
+            print("Démarrage d'une nouvelle partie.")
+            boucle_principale()
+
+        elif choix == 1:  
+            print("Chargement d'une partie existante.")
+            charger_sauv()
+            boucle_principale()
+
+        elif choix == 2:  
+            while True: 
+                choix_var = menu_variantes()
+                
+                if choix_var == 0:
+                    print("Mode Pourrissement Activé")
+                    try:
+                        tps_pourr = int(input("Temps de pourrissement en secondes ? (entrez un nombre entier) : "))
+                    except ValueError:
+                        print("Entrée invalide, le pourrissement n'a pas été activé.")
+                        tps_pourr = 0
+                
+                elif choix_var == 1:
+                    print("Score par niveau activé")
+                    scoreParniv = True
+                
+                elif choix_var == 2:
+                    fichier = input("Entrez le nom du fichier contenant les polyominos : ")
+                    POLYOMINOS_PERSONNALISES = charger_polyominos(fichier)
+                    if POLYOMINOS_PERSONNALISES:
+                        print(f"{len(POLYOMINOS_PERSONNALISES)} polyominos personnalisés chargés.")
+                    else:
+                        print("Aucun polyomino personnalisé chargé. Utilisation des formes par défaut.")
+                
+                elif choix_var == 3:
+                    print("Retour au menu principal.")
+                    break
+                
+                else:
+                    print("Option invalide, veuillez réessayer.")
+
+        elif choix == 3:  
+            print("Option 'Bonus' non disponible pour le moment.")
+        
         else:
-            print("Aucun polyomino personnalisé chargé. Utilisation des formes par défaut.")
+            print("Option invalide, veuillez redémarrer le programme.")
+            break
 
+        if not jeu_en_cours:  
+            break
 
-    boucle_principale()
     fltk.ferme_fenetre()
