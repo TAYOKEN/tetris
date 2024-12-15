@@ -42,35 +42,59 @@ jeu_en_cours = True
 POLYOMINOS_PERSONNALISES = []
 
 def menu():
-    """Affiche le menu principal permettant de démarrer une nouvelle partie ou de charger une partie sauvegardée."""
+    """Affiche le menu principal avec des décorations et animations."""
     choix = 0
-    options = ["Nouveau Jeu", "Charger Partie", "Variantes", "Bonus"]
+    options = ["Nouveau Jeu", "Charger Partie", "Variantes", "Bonus","Quitter"]
+    bordure_couleur = "white"
+    animation_timer = 0
+    
     while True:
         fltk.efface_tout()
-        fltk.rectangle(0, 0, (LARGEUR_GRILLE + LONGUEUR_INFO) * TAILLE_CASE, HAUTEUR_GRILLE * TAILLE_CASE, remplissage="black")
+        
+        # Décoration : Fond animé
+        for i in range(HAUTEUR_GRILLE):
+            couleur_ligne = f"#{(10 * i) % 255:02x}{(5 * i) % 255:02x}33"  # Gradation de couleur
+            fltk.rectangle(0, i * TAILLE_CASE, LARGEUR_ZONE, (i + 1) * TAILLE_CASE, remplissage=couleur_ligne)
+        
+        # Décoration : Bordures dynamiques
+        if animation_timer % 20 < 10:
+            bordure_couleur = "yellow"
+        else:
+            bordure_couleur = "orange"
+        
+        fltk.rectangle(
+            0, 0, (LARGEUR_GRILLE + LONGUEUR_INFO) * TAILLE_CASE, HAUTEUR_GRILLE * TAILLE_CASE,
+            remplissage="", couleur=bordure_couleur, epaisseur=6
+        )
+        
+        # Titre animé
+        taille_titre = 24 + (animation_timer % 20) // 5  # Variation de la taille du texte
+        couleur_titre = "cyan" if animation_timer % 40 < 20 else "magenta"
+        
         fltk.texte(
             (LARGEUR_GRILLE + LONGUEUR_INFO) * TAILLE_CASE // 2,
             TAILLE_CASE * 3,
-            "Tetris",
-            couleur="white",
-            taille=24,
+            "TETRIS",
+            couleur=couleur_titre,
+            taille=taille_titre,
             ancrage="center"
         )
 
         # Afficher les options
         for i, option in enumerate(options):
-            couleur = "yellow" if i == choix else "white"
+            couleur_option = "yellow" if i == choix else couleur_titre
             fltk.texte(
                 (LARGEUR_GRILLE + LONGUEUR_INFO) * TAILLE_CASE // 2,
                 TAILLE_CASE * (5 + i * 2),
                 option,
-                couleur=couleur,
+                couleur=couleur_option,
                 taille=18,
                 ancrage="center"
             )
 
         fltk.mise_a_jour()
 
+        # Gestion des événements
         ev = fltk.donne_ev()
         if ev and fltk.type_ev(ev) == "Touche":
             touche = fltk.touche(ev)
@@ -79,32 +103,58 @@ def menu():
             elif touche == "Up":
                 choix = (choix - 1) % len(options)
             elif touche == "Return":
-                return choix  
+                return choix
+
+        animation_timer += 1
+        fltk.attente(0.05) 
+
             
 def menu_variantes():
     """Affiche le menu principal permettant de démarrer une nouvelle partie ou de charger une partie sauvegardée."""
     choix = 0
     options = ["Pourrissement", "Points par Niveau", "Charger Polyominos", "Retour"]
+    bordure_couleur = "white"
+    animation_timer = 0
+    
     while True:
         fltk.efface_tout()
-        fltk.rectangle(0, 0, (LARGEUR_GRILLE + LONGUEUR_INFO) * TAILLE_CASE, HAUTEUR_GRILLE * TAILLE_CASE, remplissage="black")
+        
+        # Décoration : Fond animé
+        for i in range(HAUTEUR_GRILLE):
+            couleur_ligne = f"#{(10 * i) % 255:02x}{(5 * i) % 255:02x}33"  # Gradation de couleur
+            fltk.rectangle(0, i * TAILLE_CASE, LARGEUR_ZONE, (i + 1) * TAILLE_CASE, remplissage=couleur_ligne)
+        
+        # Décoration : Bordures dynamiques
+        if animation_timer % 20 < 10:
+            bordure_couleur = "yellow"
+        else:
+            bordure_couleur = "orange"
+        
+        fltk.rectangle(
+            0, 0, (LARGEUR_GRILLE + LONGUEUR_INFO) * TAILLE_CASE, HAUTEUR_GRILLE * TAILLE_CASE,
+            remplissage="", couleur=bordure_couleur, epaisseur=6
+        )
+        
+        # Titre animé
+        taille_titre = 24 + (animation_timer % 20) // 5  # Variation de la taille du texte
+        couleur_titre = "cyan" if animation_timer % 40 < 20 else "magenta"
+        
         fltk.texte(
             (LARGEUR_GRILLE + LONGUEUR_INFO) * TAILLE_CASE // 2,
             TAILLE_CASE * 3,
-            "Tetris",
-            couleur="white",
-            taille=24,
+            "TETRIS",
+            couleur=couleur_titre,
+            taille=taille_titre,
             ancrage="center"
         )
 
-        # Afficher les options
         for i, option in enumerate(options):
-            couleur = "yellow" if i == choix else "white"
+            couleur_option = "yellow" if i == choix else couleur_titre
             fltk.texte(
                 (LARGEUR_GRILLE + LONGUEUR_INFO) * TAILLE_CASE // 2,
                 TAILLE_CASE * (5 + i * 2),
                 option,
-                couleur=couleur,
+                couleur=couleur_option,
                 taille=18,
                 ancrage="center"
             )
@@ -119,7 +169,10 @@ def menu_variantes():
             elif touche == "Up":
                 choix = (choix - 1) % len(options)
             elif touche == "Return":
-                return choix  
+                return choix
+
+        animation_timer += 1
+        fltk.attente(0.1) 
 
 def sauvegarde(nom_fichier="sauvegarde.json"):
     global grille, score, niveau, vitesse, forme_actuelle, forme_suiv,tps_pourr, dernier_temps_pourri
@@ -530,6 +583,8 @@ if __name__ == "__main__":
         elif choix == 3:  
             print("Option 'Bonus' non disponible pour le moment.")
         
+        elif choix == 4:
+            jeu_en_cours = False
         else:
             print("Option invalide, veuillez redémarrer le programme.")
             break
