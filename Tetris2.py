@@ -296,8 +296,10 @@ def config(nom_fichier="config.json"):
     print(f"Configuration sauvegardée dans {nom_fichier}")
 
 def charger_config(nom_fichier="config.json"):
-    """Charge un état de jeu depuis un fichier JSON."""
-    global LARGEUR_GRILLE, HAUTEUR_GRILLE,TAILLE_CASE,GRAVITE,LONGUEUR_INFO,FORMES,COULEURS
+    """Charge un état de configuration depuis un fichier JSON et met à jour la fenêtre."""
+    global LARGEUR_GRILLE, HAUTEUR_GRILLE, TAILLE_CASE, GRAVITE, LONGUEUR_INFO, COULEURS
+    global LARGEUR_ZONE, HAUTEUR_ZONE  # Recalculer les dimensions
+
     try:
         with open(nom_fichier, "r") as fichier:
             config_jeu = json.load(fichier)
@@ -309,11 +311,20 @@ def charger_config(nom_fichier="config.json"):
         LONGUEUR_INFO = config_jeu["longueur de la zone info"]
         COULEURS = config_jeu["couleurs"]
 
-        print(f"Configuration chargée depuis {nom_fichier}") 
-    except FileNotFoundError: #Au cas où le fichier est introuvable
+        LARGEUR_ZONE = (LARGEUR_GRILLE * TAILLE_CASE) + (LONGUEUR_INFO * TAILLE_CASE)
+        HAUTEUR_ZONE = HAUTEUR_GRILLE * TAILLE_CASE
+
+        print(f"Configuration chargée depuis {nom_fichier}")
+        print("Redémarrage de la fenêtre pour appliquer les changements...")
+
+        fltk.ferme_fenetre()
+        fltk.cree_fenetre(LARGEUR_ZONE, HAUTEUR_ZONE)
+
+    except FileNotFoundError:
         print(f"Fichier {nom_fichier} introuvable.")
-    except json.JSONDecodeError: #Au cas où on arrive pas à lire le fichier de sauvegarde
+    except json.JSONDecodeError:
         print(f"Erreur de lecture du fichier {nom_fichier}.")
+
 
 def nouvelle_forme():
     """Crée une nouvelle forme aléatoire avec une position initiale"""
