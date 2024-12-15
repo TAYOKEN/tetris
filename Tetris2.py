@@ -174,6 +174,71 @@ def menu_variantes():
         animation_timer += 1
         fltk.attente(0.1) 
 
+def menu_bonus():
+    """Affiche le menu principal permettant de démarrer une nouvelle partie ou de charger une partie sauvegardée."""
+    choix = 0
+    options = ["Sauvegarde des paramètres", "Charger des paramètres", "Sauvegarde des paramètres", "Retour"]
+    bordure_couleur = "white"
+    animation_timer = 0
+    
+    while True:
+        fltk.efface_tout()
+        
+        # Décoration : Fond animé
+        for i in range(HAUTEUR_GRILLE):
+            couleur_ligne = f"#{(10 * i) % 255:02x}{(5 * i) % 255:02x}33"  # Gradation de couleur
+            fltk.rectangle(0, i * TAILLE_CASE, LARGEUR_ZONE, (i + 1) * TAILLE_CASE, remplissage=couleur_ligne)
+        
+        # Décoration : Bordures dynamiques
+        if animation_timer % 20 < 10:
+            bordure_couleur = "yellow"
+        else:
+            bordure_couleur = "orange"
+        
+        fltk.rectangle(
+            0, 0, (LARGEUR_GRILLE + LONGUEUR_INFO) * TAILLE_CASE, HAUTEUR_GRILLE * TAILLE_CASE,
+            remplissage="", couleur=bordure_couleur, epaisseur=6
+        )
+        
+        # Titre animé
+        taille_titre = 24 + (animation_timer % 20) // 5  # Variation de la taille du texte
+        couleur_titre = "cyan" if animation_timer % 40 < 20 else "magenta"
+        
+        fltk.texte(
+            (LARGEUR_GRILLE + LONGUEUR_INFO) * TAILLE_CASE // 2,
+            TAILLE_CASE * 3,
+            "TETRIS",
+            couleur=couleur_titre,
+            taille=taille_titre,
+            ancrage="center"
+        )
+
+        for i, option in enumerate(options):
+            couleur_option = "yellow" if i == choix else couleur_titre
+            fltk.texte(
+                (LARGEUR_GRILLE + LONGUEUR_INFO) * TAILLE_CASE // 2,
+                TAILLE_CASE * (5 + i * 2),
+                option,
+                couleur=couleur_option,
+                taille=18,
+                ancrage="center"
+            )
+
+        fltk.mise_a_jour()
+
+        ev = fltk.donne_ev()
+        if ev and fltk.type_ev(ev) == "Touche":
+            touche = fltk.touche(ev)
+            if touche == "Down":
+                choix = (choix + 1) % len(options)
+            elif touche == "Up":
+                choix = (choix - 1) % len(options)
+            elif touche == "Return":
+                return choix
+
+        animation_timer += 1
+        fltk.attente(0.1) 
+
 def sauvegarde(nom_fichier="sauvegarde.json"):
     global grille, score, niveau, vitesse, forme_actuelle, forme_suiv,tps_pourr, dernier_temps_pourri
     etat_jeu = {
@@ -209,6 +274,42 @@ def charger_sauv(nom_fichier="sauvegarde.json"):
         dernier_temps_pourri = etat_jeu["dernier_temps_pourri"]
 
         print(f"Partie chargée depuis {nom_fichier}") 
+    except FileNotFoundError: #Au cas où le fichier est introuvable
+        print(f"Fichier {nom_fichier} introuvable.")
+    except json.JSONDecodeError: #Au cas où on arrive pas à lire le fichier de sauvegarde
+        print(f"Erreur de lecture du fichier {nom_fichier}.")
+
+def config(nom_fichier="config.json"):
+    global LARGEUR_GRILLE, HAUTEUR_GRILLE,TAILLE_CASE,GRAVITE,LONGUEUR_INFO,FORMES,COULEURS
+
+    config_jeu = {
+        "longeur de la grille": LARGEUR_GRILLE,
+        "Hauteur de la fenetre et de la grille": HAUTEUR_GRILLE,
+        "Taille de la fenetre": TAILLE_CASE,
+        "vitesse de base": GRAVITE,
+        "longueur de la zone info": LONGUEUR_INFO,
+        "couleurs": COULEURS,
+    }
+
+    with open(nom_fichier, "w") as fichier:
+        json.dump(config_jeu, fichier, indent= 4)
+    print(f"Configuration sauvegardée dans {nom_fichier}")
+
+def charger_config(nom_fichier="config.json"):
+    """Charge un état de jeu depuis un fichier JSON."""
+    global LARGEUR_GRILLE, HAUTEUR_GRILLE,TAILLE_CASE,GRAVITE,LONGUEUR_INFO,FORMES,COULEURS
+    try:
+        with open(nom_fichier, "r") as fichier:
+            config_jeu = json.load(fichier)
+
+        LARGEUR_GRILLE = config_jeu["longeur de la grille"]
+        HAUTEUR_GRILLE = config_jeu["Hauteur de la fenetre et de la grille"]
+        TAILLE_CASE = config_jeu["Taille de la fenetre"]
+        GRAVITE = config_jeu["vitesse de base"]
+        LONGUEUR_INFO = config_jeu["longueur de la zone info"]
+        COULEURS = config_jeu["couleurs"]
+
+        print(f"Configuration chargée depuis {nom_fichier}") 
     except FileNotFoundError: #Au cas où le fichier est introuvable
         print(f"Fichier {nom_fichier} introuvable.")
     except json.JSONDecodeError: #Au cas où on arrive pas à lire le fichier de sauvegarde
@@ -581,7 +682,34 @@ if __name__ == "__main__":
                     print("Option invalide, veuillez réessayer.")
 
         elif choix == 3:  
-            print("Option 'Bonus' non disponible pour le moment.")
+            while True: 
+                choix_bon = menu_bonus()
+                
+                if choix_bon == 0:
+                    config()
+                    print("Configuration Sauvegardée")
+
+
+                
+                elif choix_bon == 1:
+                    charger_config()
+                    print("Configuration Chargée")
+
+                
+                elif choix_bon == 2:
+                    fichier = input("Entrez le nom du fichier contenant les polyominos : ")
+                    POLYOMINOS_PERSONNALISES = charger_polyominos(fichier)
+                    if POLYOMINOS_PERSONNALISES:
+                        print(f"{len(POLYOMINOS_PERSONNALISES)} polyominos personnalisés chargés.")
+                    else:
+                        print("Aucun polyomino personnalisé chargé. Utilisation des formes par défaut.")
+                
+                elif choix_bon == 3:
+                    print("Retour au menu principal.")
+                    break
+                
+                else:
+                    print("Option invalide, veuillez réessayer.")
         
         elif choix == 4:
             jeu_en_cours = False
