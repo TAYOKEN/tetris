@@ -36,3 +36,7 @@ En bref ça utilise le même système que la sauvegarde sauf que ça ajoute de l
 puis dans charger config on va faire la mem change que charger sauvegarde mais on va recalculer LARGEUR_ZONE et HAUTEUR_ZONE et on redémarre le jeu en recréant la fenêtre avec les nouveaux calculs
 
 Si on ne recrée pas la fenêtre ça sera décalé et on peut avoir des problèmes de collisions vu qu'ils se basent sur la fenêtre pré-modification
+
+Utilisation de boucle dans if name 
+
+Si on n'utilise pas de boucle While TRUE alors dans le cas où on change de menu et qu'on reviens sur le menu principal et qu'on choisi une option le jeu se fermera 
