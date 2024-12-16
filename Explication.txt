@@ -1,4 +1,4 @@
-Yanis BOUKAYOUH Issam BEN HAMOUDA
+
 Constantes:
 Pourquoi avoir choisi des constantes?
 -Lisibilité et compréhension du code beaucoup plus simple pour soi et d'autres personnes
