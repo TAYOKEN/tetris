@@ -38,6 +38,13 @@ dernier_temps_pourri = time.time()  # Initialisation du chrono avant la boucle
 scoreParniv = False
 game_over = False
 jeu_en_cours = True
+bloc_bonus_activ = False
+info_bloc_gris = {
+    "position": None,
+    "couleur_originale": None,
+    "temps_devenu_gris": None
+}
+bonus_active = False
 
 POLYOMINOS_PERSONNALISES = []
 
@@ -177,7 +184,7 @@ def menu_variantes():
 def menu_bonus():
     """Affiche le menu principal permettant de démarrer une nouvelle partie ou de charger une partie sauvegardée."""
     choix = 0
-    options = ["Sauvegarde des paramètres", "Charger des paramètres", "Sauvegarde des paramètres", "Retour"]
+    options = ["Sauvegarde des paramètres", "Charger des paramètres", "Bloc Bonus", "Retour"]
     bordure_couleur = "white"
     animation_timer = 0
     
@@ -429,38 +436,33 @@ def collisions(forme, position):
 def ligne_complete():
     global score, niveau, vitesse, grille, scoreParniv
     nouvelle_grille = []
+    lignes_effacees = 0
+    gris_efface = False
+
     for ligne in grille:
-        if any(carre is None for carre in ligne):
+        if all(carre is not None for carre in ligne):  # Ligne complète
+            lignes_effacees += 1
+            if 'gray' in ligne:  # Si la ligne contient un bloc gris
+                gris_efface = True
+        else:
             nouvelle_grille.append(ligne)
 
-    ligne_efface= HAUTEUR_GRILLE - len(nouvelle_grille)
-    for _ in range(ligne_efface):
-        nouvelle_grille.insert(0, [None]* LARGEUR_GRILLE)
-    grille= nouvelle_grille
-    
-    if not scoreParniv:
-        if ligne_efface == 1:
-            score += 100
-        elif ligne_efface == 2:
-            score += 250
-        elif ligne_efface == 3:
-            score += 400
-        elif ligne_efface == 4:
-            score += 500
-        niveau = 1 + score // 500
+    for _ in range(lignes_effacees):
+        nouvelle_grille.insert(0, [None] * LARGEUR_GRILLE)
 
-    if scoreParniv:
-        if ligne_efface == 1:
-            score += 25 *1* niveau
-        elif ligne_efface == 2:
-            score += 50* 1 * niveau
-        elif ligne_efface == 3:
-            score += 75 * 1 * niveau
-        elif ligne_efface == 4:
-            score += 100 * 1 * niveau
-        niveau = 1 + score // (500 * 1 * niveau)
+    grille = nouvelle_grille
 
-    vitesse= GRAVITE * (0.9 ** (niveau - 1))
+    # Calcul des points
+    if lignes_effacees > 0:
+        points_par_lignes = [0, 100, 250, 400, 500][min(lignes_effacees, 4)]
+        score += points_par_lignes * niveau if not scoreParniv else points_par_lignes
+
+    # Appel de l'effet bonus si un bloc gris est supprimé
+    if gris_efface:
+        bonus_effet()
+
+    return lignes_effacees > 0
+
 
     
 
@@ -523,6 +525,94 @@ def mettre_a_jour_forme():
             forme_actuelle["position"] = nouvelle_position
 
     ligne_complete() 
+
+def pourrissement(): 
+    positions_occupees = [
+                (i, j) for i in range(HAUTEUR_GRILLE) for j in range(LARGEUR_GRILLE) if grille[i][j] != None
+            ]
+    if positions_occupees:
+        ligne, colonne = random.choice(positions_occupees)
+        grille[ligne][colonne] = None
+        return grille
+
+def bloc_bonus(): 
+    global info_bloc_gris
+
+    # Vérifie s'il y a déjà un bloc gris
+    if info_bloc_gris["position"] is not None:
+        temps_ecoule = time.time() - info_bloc_gris["temps_devenu_gris"]
+        if temps_ecoule >= 30:
+            # Rétablit la couleur originale du bloc
+            ligne, colonne = info_bloc_gris["position"]
+            grille[ligne][colonne] = info_bloc_gris["couleur_originale"]
+            info_bloc_gris = {
+                "position": None,
+                "couleur_originale": None,
+                "temps_devenu_gris": None
+            }
+        else:
+            return grille
+
+    positions_occupees = [
+        (i, j) for i in range(HAUTEUR_GRILLE) for j in range(LARGEUR_GRILLE) if grille[i][j] is not None
+    ]
+    if positions_occupees:
+        ligne, colonne = random.choice(positions_occupees)
+        info_bloc_gris = {
+            "position": (ligne, colonne),
+            "couleur_originale": grille[ligne][colonne],
+            "temps_devenu_gris": time.time()
+        }
+        grille[ligne][colonne] = 'gray'
+    
+    return grille
+
+def bonus_effet():
+    """Applique un effet aléatoire si un bloc gris est supprimé."""
+    global grille, score, niveau, vitesse, game_over
+    effet = random.randint(1, 3)  # Sélectionne aléatoirement l'effet
+
+    if effet == 1:  # Augmentation temporaire des points
+        print("Multiplicateur de points activé !")
+        # Aucun changement immédiat nécessaire ici
+
+    elif effet == 2:  # Effacement du plateau
+        print("Effacement du plateau activé !")
+        grille = [[None for _ in range(LARGEUR_GRILLE)] for _ in range(HAUTEUR_GRILLE)]
+
+    elif effet == 3:  # Gravité réelle
+        print("Gravité réelle activée !")
+        appliquer_gravite()
+
+    fltk.mise_a_jour()
+
+
+    fltk.mise_a_jour()
+
+def appliquer_gravite():
+    """Applique la gravité réelle aux blocs de la grille."""
+    global grille, game_over
+
+    for colonne in range(LARGEUR_GRILLE):
+        # Collecter les blocs présents dans la colonne
+        pile = [grille[ligne][colonne] for ligne in range(HAUTEUR_GRILLE) if grille[ligne][colonne] is not None]
+        
+        # Retirer les blocs de la grille actuelle
+        for ligne in range(HAUTEUR_GRILLE):
+            grille[ligne][colonne] = None
+        
+        # Remettre les blocs en bas
+        for ligne in range(HAUTEUR_GRILLE - len(pile), HAUTEUR_GRILLE):
+            grille[ligne][colonne] = pile.pop(0)
+
+    # Vérifier si des blocs dépassent la grille
+    for colonne in range(LARGEUR_GRILLE):
+        if grille[0][colonne] is not None:
+            print("Game over détecté après gravité.")
+            game_over = True
+            break
+
+
     
 def perdu():
     global game_over
@@ -554,13 +644,12 @@ def boucle_principale():
 
     while jeu_en_cours:
         fltk.efface_tout()
+        
+        if bloc_bonus_activ == True:
+            bloc_bonus()
+        
         if tps_pourr > 0 and time.time() - dernier_temps_pourri >= tps_pourr:
-            positions_occupees = [
-                (i, j) for i in range(HAUTEUR_GRILLE) for j in range(LARGEUR_GRILLE) if grille[i][j] != None
-            ]
-            if positions_occupees:
-                ligne, colonne = random.choice(positions_occupees)
-                grille[ligne][colonne] = None
+            pourrissement()
             dernier_temps_pourri = time.time()  # Réinitialisation du chrono après l'action
         # Dessine le fond noir
         fltk.rectangle(0, 0, LARGEUR_ZONE, HAUTEUR_ZONE, remplissage="black")
@@ -708,12 +797,8 @@ if __name__ == "__main__":
 
                 
                 elif choix_bon == 2:
-                    fichier = input("Entrez le nom du fichier contenant les polyominos : ")
-                    POLYOMINOS_PERSONNALISES = charger_polyominos(fichier)
-                    if POLYOMINOS_PERSONNALISES:
-                        print(f"{len(POLYOMINOS_PERSONNALISES)} polyominos personnalisés chargés.")
-                    else:
-                        print("Aucun polyomino personnalisé chargé. Utilisation des formes par défaut.")
+                    bloc_bonus_activ = True
+                    print(f'Bloc Bonus Activé')
                 
                 elif choix_bon == 3:
                     print("Retour au menu principal.")
