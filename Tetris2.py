@@ -613,14 +613,16 @@ def appliquer_gravite():
             break
 
 
-    
 def perdu():
-    global game_over
+    global game_over,grille
     if game_over:
         fltk.rectangle(0, 0, LARGEUR_ZONE, HAUTEUR_ZONE, remplissage="black")
         fltk.texte(LARGEUR_ZONE // 2, HAUTEUR_ZONE // 3, "Game Over", couleur="red", taille=16, ancrage="center")
+        grille = [[None for _ in range(LARGEUR_GRILLE)] for _ in range(HAUTEUR_GRILLE)]
+
         fltk.attente(1)
         fltk.ferme_fenetre
+        game_over = False
 
 def verifie_fin_de_jeu():
     """
