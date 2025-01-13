@@ -729,13 +729,13 @@ def charger_polyominos(nom_fichier):
             forme = [[1 if char == "+" else 0 for char in ligne] for ligne in bloc.split("\n")]
             polyominos.append(forme)
         except IndexError:
-            print("Erreur : Format incorrect dans le bloc suivant:\n" + bloc)
+            print(f"Erreur : Format incorrect dans le bloc suivant :\n{bloc}")
             continue
+
 
     if not polyominos:
         print("Erreur : Aucun polyomino valide n'a été trouvé.")
     return polyominos
-
 
 if __name__ == "__main__":
     fltk.cree_fenetre(LARGEUR_ZONE, HAUTEUR_ZONE)
