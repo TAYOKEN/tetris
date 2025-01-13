@@ -1,42 +1,89 @@
+Constantes :
 
-Constantes:
-Pourquoi avoir choisi des constantes?
--Lisibilité et compréhension du code beaucoup plus simple pour soi et d'autres personnes
--éviter de rechercher les autres occurrence pour avoir la valeur
--évite de devoir changer tout le code au cas où il y a quelque chose de faux
+    Pourquoi avoir choisi des constantes ?
+        Lisibilité et compréhension améliorées : Les constantes rendent le code plus clair, que ce soit pour le développeur initial ou pour d'autres personnes qui doivent le lire ou le modifier.
+        Facilité de maintenance : Les valeurs des constantes sont définies à un seul endroit, ce qui évite de devoir rechercher toutes les occurrences pour les modifier.
+        Évite les erreurs : Si une valeur est utilisée à plusieurs endroits et doit être modifiée, une constante garantit que tous les emplacements reflètent le changement, réduisant ainsi les risques d'erreurs.
 
-Variables globales:
--Simplicité et accessibilité dans le contexte du car les états doivent êtres partagés entre plusieurs fonctions
+Variables globales :
 
-Forme: 
-Utilisation de dictionnaire:
--Simplicité, lisibilité et flexibilité, elle permettent de regrouper différente propriété (forme = matrice, couleur = string (chaine de caractère) et position = entiers (int))
-Sauvegarde:
-Pourquoi avoir choisi le JSON et pas un autre format comme le TXT:
-Le format JSON est adapté aux structures complexes, et permet de sauvegarder des dictionnaire et listes de plus un fichier JSON est facilement lisible par les humain est bien structuré et supporté nativement par python.
+    Pourquoi avoir utilisé des variables globales ?
+        Partage d'état : Les variables globales permettent de partager l'état du jeu (grille, score, niveau, etc.) entre différentes fonctions sans avoir à les passer en paramètres.
+        Simplicité d'accès : Elles simplifient le code en rendant les données essentielles accessibles partout où elles sont nécessaires.
+        Adaptées à un jeu : Dans le contexte d'un jeu, les états sont centralisés (exemple : position actuelle, score, gravité), ce qui justifie leur usage.
 
-Comment marche celle-ci, en bref on crée un dictionnaire les variables globales et comme dans la partie if name on charge directement la boucle principale, on charge ces variables globales changant l'état du jeu
+Formes :
 
-Supporté nativement par python -> facilite le travail car il correspond aux structures python (liste dico etc) et est gérer par des outils déjà intégré à Python sans effort de conversion ou de manipulation supplémentaire
+    Utilisation de dictionnaires pour représenter les formes
+        Lisibilité et flexibilité : Un dictionnaire permet de regrouper plusieurs propriétés de la forme, comme la matrice (forme), la couleur, et la position.
+        Évolutivité : Si on souhaite ajouter une propriété (par exemple, un identifiant unique), cela peut être fait facilement sans modifier la structure existante.
 
-De l'autre coté le fichier txt est peu structuré pour des données complexes comme la grille
+Sauvegarde :
 
-On aurait aussi pu utiliser un fichier binaire Pickle mais il est moins portable et peut provoquer des problèmes entre le version de python ce qu'on veut éviter à tout prix
+    Pourquoi utiliser le JSON au lieu du TXT ou du Pickle ?
+        Support natif : Python gère le JSON avec des outils intégrés comme json.dump et json.load, sans effort supplémentaire pour convertir des structures complexes comme des dictionnaires ou des listes.
+        Portabilité : Contrairement au format Pickle, le JSON est portable entre différentes versions de Python.
+        Lisibilité : Les fichiers JSON sont lisibles par les humains, bien structurés, et adaptés aux données complexes comme la grille du jeu.
+        Éviter les problèmes de compatibilité : Pickle peut poser des problèmes entre différentes versions de Python, ce que l'on souhaite éviter.
 
-Pourrissement fonctionnement:
-cherche dans la matrice grille, les 1 et en met un au hasard à 0 enlevant un bloc sans changer sa graviter vu que le forme n'a plus de dépendance à collision()
-dans le menu on met l'option de changer le temps et on crée un chrono en variable globale pour dire que à chaque fois que le chrono atteint x nombre enlève un bloc au hasard puis reset le chrono à 0
+    Comment cela fonctionne ?
+        On regroupe les variables globales pertinentes (grille, score, niveau, etc.) dans un dictionnaire.
+        On sauvegarde ce dictionnaire dans un fichier JSON à l'aide de json.dump.
+        Lors du chargement, on utilise json.load pour restaurer les données dans les variables globales.
 
-Fonctionnement de la variante polyominos : 
-Nous lisons d'abord un fichier contenant les polyominos définis avec des grilles de + et on les convertit par un format compatible pour le programme, on lit le fichier, on sépare les polyominos, on convertit les + en 1 et les espaces en 0 et on uniformise ensuite les lignes pour pas qu'elles aient des longueurs différentes, ensuite on crée les nouvelles pièces dans le jeu en mettant les polyomino dans le choix des générations de formes, et le reste est géré comme tout le reste du programme
+Pourrissement :
 
-Configuration BONUS:
+    Fonctionnement :
+        Parcourt la grille pour trouver les blocs occupés (non None).
+        Sélectionne une position au hasard parmi celles occupées.
+        Supprime le bloc en mettant sa valeur à None.
+        Dans le menu, une option permet de définir l'intervalle de temps entre chaque suppression.
+        Un chronomètre global vérifie quand le temps spécifié est écoulé et déclenche la suppression d'un bloc, avant de réinitialiser le chronomètre.
 
-En bref ça utilise le même système que la sauvegarde sauf que ça ajoute de l'indentation pour que le fichier soit lisible à l'utilisateur
-puis dans charger config on va faire la mem change que charger sauvegarde mais on va recalculer LARGEUR_ZONE et HAUTEUR_ZONE et on redémarre le jeu en recréant la fenêtre avec les nouveaux calculs
+Variante Polyominos :
 
-Si on ne recrée pas la fenêtre ça sera décalé et on peut avoir des problèmes de collisions vu qu'ils se basent sur la fenêtre pré-modification
+    Fonctionnement :
+        Lecture d'un fichier texte contenant des polyominos définis à l'aide de caractères +.
+        Conversion des + en 1 et des espaces en 0.
+        Uniformisation des lignes pour éviter des problèmes de longueur.
+        Les polyominos sont ajoutés à la liste des formes disponibles pour le jeu.
+        Le reste du programme traite ces nouvelles formes comme les formes standard.
 
-Utilisation de boucle dans if name 
+Configuration BONUS :
 
-Si on n'utilise pas de boucle While TRUE alors dans le cas où on change de menu et qu'on reviens sur le menu principal et qu'on choisi une option le jeu se fermera 
+    Sauvegarde de la configuration :
+        Fonctionne de manière similaire à la sauvegarde du jeu.
+        Utilise json.dump avec une option d'indentation pour rendre le fichier plus lisible.
+    Chargement de la configuration :
+        Recharge les constantes modifiables (grille, taille des cases, etc.).
+        Recalcule les dimensions de la fenêtre (LARGEUR_ZONE, HAUTEUR_ZONE).
+        Redémarre la fenêtre avec les nouvelles dimensions pour éviter des décalages ou des problèmes de collisions.
+
+Utilisation de boucle dans if __name__ == "__main__" :
+
+    Une boucle while True garantit que le jeu retourne au menu principal après avoir terminé une partie ou changé une option.
+    Si elle n'était pas utilisée, le programme se fermerait après la première interaction.
+
+Autres variantes non mentionnées précédemment :
+
+    Bloc Bonus :
+        Un bloc spécial "gris" apparaît aléatoirement sur la grille.
+        Après un certain temps (30 secondes par défaut), le bloc revient à sa couleur originale.
+        Si le bloc est éliminé avant, il déclenche un effet aléatoire :
+            Augmentation temporaire des points.
+            Effacement complet du plateau.
+            Gravité réelle appliquée aux blocs.
+
+    Mode 2 joueurs :
+        Chaque joueur dispose de sa propre grille et contrôle ses propres blocs.
+        Les scores, niveaux, et vitesses sont indépendants pour chaque joueur.
+        Une séparation visuelle est dessinée entre les deux grilles.
+        Les commandes sont adaptées pour que deux claviers puissent être utilisés simultanément.
+
+    Score par niveau :
+        Option activée dans le menu.
+        Le score obtenu pour chaque ligne complétée est multiplié par le niveau actuel, rendant les niveaux plus avancés plus gratifiants.
+
+    Changement de vitesse (gravité) :
+        La gravité augmente progressivement avec les niveaux.
+        Cela rend le jeu plus difficile à mesure que le joueur progresse.
