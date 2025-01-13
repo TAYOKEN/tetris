@@ -26,6 +26,8 @@ FORMES = [
 COULEURS = ["red", "blue", "yellow","cyan","green","orange"]
 
 # Variables globales
+
+# Variables Jeu de base
 forme_actuelle = None
 grille = [[None for _ in range(LARGEUR_GRILLE)] for _ in range(HAUTEUR_GRILLE)]
 score = 0
@@ -33,11 +35,13 @@ niveau = 1
 vitesse = GRAVITE
 forme_suiv = None
 pause = False
+game_over = False
+jeu_en_cours = True
+
+#Variables Variantes/Bonus
 tps_pourr = 0
 dernier_temps_pourri = time.time()  # Initialisation du chrono avant la boucle
 scoreParniv = False
-game_over = False
-jeu_en_cours = True
 bloc_bonus_activ = False
 info_bloc_gris = {
     "position": None,
@@ -45,13 +49,24 @@ info_bloc_gris = {
     "temps_devenu_gris": None
 }
 bonus_active = False
-
 POLYOMINOS_PERSONNALISES = []
+elim_couleurs_adjacentes = False
+
+# Variables globales pour le joueur 2
+j2_forme_actuelle = None
+j2_grille = [[None for _ in range(LARGEUR_GRILLE)] for _ in range(HAUTEUR_GRILLE)]
+j2_score = 0
+j2_niveau = 1
+j2_vitesse = GRAVITE
+j2_forme_suiv = None
+j2_pause = False
+j2_game_over = False
+
 
 def menu():
     """Affiche le menu principal avec des décorations et animations."""
     choix = 0
-    options = ["Nouveau Jeu", "Charger Partie", "Variantes", "Bonus","Quitter"]
+    options = ["Nouveau Jeu", "Charger Partie", "Variantes", "Bonus", "Mode 2 Joueurs", "Quitter"]
     bordure_couleur = "white"
     animation_timer = 0
     
@@ -184,19 +199,17 @@ def menu_variantes():
 def menu_bonus():
     """Affiche le menu principal permettant de démarrer une nouvelle partie ou de charger une partie sauvegardée."""
     choix = 0
-    options = ["Sauvegarde des paramètres", "Charger des paramètres", "Bloc Bonus", "Retour"]
+    options = ["Sauvegarde des paramètres", "Charger des paramètres", "Bloc Bonus", "Couleur Adjacentes", "Retour"]
     bordure_couleur = "white"
     animation_timer = 0
     
     while True:
         fltk.efface_tout()
         
-        # Décoration : Fond animé
         for i in range(HAUTEUR_GRILLE):
             couleur_ligne = f"#{(10 * i) % 255:02x}{(5 * i) % 255:02x}33"  # Gradation de couleur
             fltk.rectangle(0, i * TAILLE_CASE, LARGEUR_ZONE, (i + 1) * TAILLE_CASE, remplissage=couleur_ligne)
         
-        # Décoration : Bordures dynamiques
         if animation_timer % 20 < 10:
             bordure_couleur = "yellow"
         else:
@@ -385,19 +398,19 @@ def gerer_clavier():
 
         if touche == "Left":
             nouvelle_position = (ligne, colonne - 1)
-            if not collisions(forme_actuelle["forme"], nouvelle_position):
+            if not collisions(forme_actuelle["forme"], nouvelle_position,grille):
                 forme_actuelle["position"] = nouvelle_position
         elif touche == "Right":
             nouvelle_position = (ligne, colonne + 1)
-            if not collisions(forme_actuelle["forme"], nouvelle_position):
+            if not collisions(forme_actuelle["forme"], nouvelle_position,grille):
                 forme_actuelle["position"] = nouvelle_position
         elif touche == "Down":
             nouvelle_position = (ligne + 1, colonne)
-            if not collisions(forme_actuelle["forme"], nouvelle_position):
+            if not collisions(forme_actuelle["forme"], nouvelle_position,grille):
                 forme_actuelle["position"] = nouvelle_position
         elif touche == "Up":
             nouvelle_forme = rotation_horaire(forme_actuelle["forme"])
-            if not collisions(nouvelle_forme, (ligne, colonne)):
+            if not collisions(nouvelle_forme, (ligne, colonne),grille):
                 forme_actuelle["forme"] = nouvelle_forme
         elif touche == "q":
             jeu_en_cours = False 
@@ -419,7 +432,7 @@ def rotation_horaire(forme):
             nouvelle_forme[j][hauteur - 1 - i] = forme[i][j]  
     return nouvelle_forme
 
-def collisions(forme, position):
+def collisions(forme, position, grille):
     """Vérifie si une collision se produit pour une forme à une position donnée."""
     ligne, colonne = position
     for i, ligne_forme in enumerate(forme):
@@ -440,9 +453,9 @@ def ligne_complete():
     gris_efface = False
 
     for ligne in grille:
-        if all(carre is not None for carre in ligne):  # Ligne complète
+        if all(carre is not None for carre in ligne):  
             lignes_effacees += 1
-            if 'gray' in ligne:  # Si la ligne contient un bloc gris
+            if 'gray' in ligne:  
                 gris_efface = True
         else:
             nouvelle_grille.append(ligne)
@@ -452,12 +465,10 @@ def ligne_complete():
 
     grille = nouvelle_grille
 
-    # Calcul des points
     if lignes_effacees > 0:
         points_par_lignes = [0, 100, 250, 400, 500][min(lignes_effacees, 4)]
         score += points_par_lignes * niveau if not scoreParniv else points_par_lignes
 
-    # Appel de l'effet bonus si un bloc gris est supprimé
     if gris_efface:
         bonus_effet()
 
@@ -502,19 +513,18 @@ def pause_menu():
 
                 
 def mettre_a_jour_forme():
-    """Fait descendre la forme actuelle automatiquement."""
+    """Fait descendre la forme actuelle automatiquement pour le joueur 1."""
     global forme_actuelle, grille, forme_suiv, game_over
 
     if forme_actuelle is not None:
         ligne, colonne = forme_actuelle["position"]
         nouvelle_position = (ligne + 1, colonne)
 
-        if collisions(forme_actuelle["forme"], nouvelle_position):
+        if collisions(forme_actuelle["forme"], nouvelle_position, grille):  
             for i, ligne_forme in enumerate(forme_actuelle["forme"]):
                 for j, case in enumerate(ligne_forme):
                     if case == 1 and ligne + i < HAUTEUR_GRILLE:
-                        grille[ligne + i][colonne + j] = forme_actuelle["couleur"]  # Stocker la couleur
-
+                        grille[ligne + i][colonne + j] = forme_actuelle["couleur"]  
             if ligne == 0:
                 game_over = True
                 return
@@ -523,6 +533,8 @@ def mettre_a_jour_forme():
             forme_suiv = nouvelle_forme()
         else:
             forme_actuelle["position"] = nouvelle_position
+
+    ligne_complete()
 
     ligne_complete() 
 
@@ -538,11 +550,9 @@ def pourrissement():
 def bloc_bonus(): 
     global info_bloc_gris
 
-    # Vérifie s'il y a déjà un bloc gris
     if info_bloc_gris["position"] is not None:
         temps_ecoule = time.time() - info_bloc_gris["temps_devenu_gris"]
         if temps_ecoule >= 30:
-            # Rétablit la couleur originale du bloc
             ligne, colonne = info_bloc_gris["position"]
             grille[ligne][colonne] = info_bloc_gris["couleur_originale"]
             info_bloc_gris = {
@@ -570,17 +580,16 @@ def bloc_bonus():
 def bonus_effet():
     """Applique un effet aléatoire si un bloc gris est supprimé."""
     global grille, score, niveau, vitesse, game_over
-    effet = random.randint(1, 3)  # Sélectionne aléatoirement l'effet
+    effet = random.randint(1, 3) 
 
-    if effet == 1:  # Augmentation temporaire des points
+    if effet == 1: 
         print("Multiplicateur de points activé !")
-        # Aucun changement immédiat nécessaire ici
 
     elif effet == 2:  # Effacement du plateau
         print("Effacement du plateau activé !")
         grille = [[None for _ in range(LARGEUR_GRILLE)] for _ in range(HAUTEUR_GRILLE)]
 
-    elif effet == 3:  # Gravité réelle
+    elif effet == 3: 
         print("Gravité réelle activée !")
         appliquer_gravite()
 
@@ -594,27 +603,22 @@ def appliquer_gravite():
     global grille, game_over
 
     for colonne in range(LARGEUR_GRILLE):
-        # Collecter les blocs présents dans la colonne
         pile = [grille[ligne][colonne] for ligne in range(HAUTEUR_GRILLE) if grille[ligne][colonne] is not None]
         
-        # Retirer les blocs de la grille actuelle
         for ligne in range(HAUTEUR_GRILLE):
             grille[ligne][colonne] = None
         
-        # Remettre les blocs en bas
         for ligne in range(HAUTEUR_GRILLE - len(pile), HAUTEUR_GRILLE):
             grille[ligne][colonne] = pile.pop(0)
 
-    # Vérifier si des blocs dépassent la grille
     for colonne in range(LARGEUR_GRILLE):
         if grille[0][colonne] is not None:
             print("Game over détecté après gravité.")
             game_over = True
             break
-
-
+        
 def perdu():
-    global game_over,grille
+    global game_over,grille,niveau,vitesse,score
     if game_over:
         fltk.rectangle(0, 0, LARGEUR_ZONE, HAUTEUR_ZONE, remplissage="black")
         fltk.texte(LARGEUR_ZONE // 2, HAUTEUR_ZONE // 3, "Game Over", couleur="red", taille=16, ancrage="center")
@@ -623,6 +627,9 @@ def perdu():
         fltk.attente(1)
         fltk.ferme_fenetre
         game_over = False
+        niveau = 1
+        vitesse = GRAVITE
+        score = 0
 
 def verifie_fin_de_jeu():
     """
@@ -653,21 +660,17 @@ def boucle_principale():
         if tps_pourr > 0 and time.time() - dernier_temps_pourri >= tps_pourr:
             pourrissement()
             dernier_temps_pourri = time.time()  # Réinitialisation du chrono après l'action
-        # Dessine le fond noir
         fltk.rectangle(0, 0, LARGEUR_ZONE, HAUTEUR_ZONE, remplissage="black")
 
-        # Gère le clavier
         if not gerer_clavier():
             break
 
-        # Initialise les formes si elles ne sont pas définies
         if forme_actuelle is None:
             forme_actuelle = forme_suiv
             forme_suiv = nouvelle_forme()
         if forme_suiv is None:
             forme_suiv = nouvelle_forme()
 
-        # Dessine la forme en mouvement
         if forme_actuelle is not None:
             dessiner_forme(
                 forme_actuelle["forme"],
@@ -675,7 +678,6 @@ def boucle_principale():
                 forme_actuelle["position"],
             )
 
-        # Met à jour la forme (descente)
         mettre_a_jour_forme()
 
         for i in range(HAUTEUR_GRILLE):
@@ -737,6 +739,326 @@ def charger_polyominos(nom_fichier):
         print("Erreur : Aucun polyomino valide n'a été trouvé.")
     return polyominos
 
+
+def gerer_clavier_j2():
+    """Gère les actions du clavier pour le joueur 2."""
+    global j2_forme_actuelle, j2_game_over
+    ev = fltk.donne_ev()
+    if ev and fltk.type_ev(ev) == "Touche":
+        touche = fltk.touche(ev)
+        ligne, colonne = j2_forme_actuelle["position"]
+
+        if touche == "q":  
+            nouvelle_position = (ligne, colonne - 1)
+            if not collisions(j2_forme_actuelle["forme"], nouvelle_position, j2_grille):
+                j2_forme_actuelle["position"] = nouvelle_position
+        elif touche == "d":  
+            nouvelle_position = (ligne, colonne + 1)
+            if not collisions(j2_forme_actuelle["forme"], nouvelle_position, j2_grille):
+                j2_forme_actuelle["position"] = nouvelle_position
+        elif touche == "s":  
+            nouvelle_position = (ligne + 1, colonne)
+            if not collisions(j2_forme_actuelle["forme"], nouvelle_position, j2_grille):
+                j2_forme_actuelle["position"] = nouvelle_position
+        elif touche == "z":  
+            nouvelle_forme = rotation_horaire(j2_forme_actuelle["forme"])
+            if not collisions(nouvelle_forme, (ligne, colonne), j2_grille):
+                j2_forme_actuelle["forme"] = nouvelle_forme
+        elif touche == "Escape":
+            j2_pause = True
+    return True
+
+def mettre_a_jour_forme_j2():
+    """Fait descendre la forme actuelle automatiquement pour le joueur 2."""
+    global j2_forme_actuelle, j2_grille, j2_forme_suiv, j2_game_over
+
+    if j2_forme_actuelle is not None:
+        ligne, colonne = j2_forme_actuelle["position"]
+        nouvelle_position = (ligne + 1, colonne)
+
+        if collisions(j2_forme_actuelle["forme"], nouvelle_position, j2_grille):  
+            for i, ligne_forme in enumerate(j2_forme_actuelle["forme"]):
+                for j, case in enumerate(ligne_forme):
+                    if case == 1 and ligne + i < HAUTEUR_GRILLE:
+                        j2_grille[ligne + i][colonne + j] = j2_forme_actuelle["couleur"]  
+
+            if ligne == 0:
+                j2_game_over = True
+                return
+
+            j2_forme_actuelle = j2_forme_suiv
+            j2_forme_suiv = nouvelle_forme()
+        else:
+            j2_forme_actuelle["position"] = nouvelle_position
+
+    ligne_complete_j2()
+
+
+def ligne_complete_j2():
+    global j2_score, j2_niveau, j2_vitesse, j2_grille
+    nouvelle_grille = []
+    lignes_effacees = 0
+
+    for ligne in j2_grille:
+        if all(carre is not None for carre in ligne):  
+            lignes_effacees += 1
+        else:
+            nouvelle_grille.append(ligne)
+
+    for _ in range(lignes_effacees):
+        nouvelle_grille.insert(0, [None] * LARGEUR_GRILLE)
+
+    j2_grille = nouvelle_grille
+
+    if lignes_effacees > 0:
+        points_par_lignes = [0, 100, 250, 400, 500][min(lignes_effacees, 4)]
+        j2_score += points_par_lignes * j2_niveau
+
+def dessiner_forme_j2(forme, couleur, position):
+    """Dessine une forme pour le joueur 2 à l'écran à sa position donnée."""
+    ligne, colonne = position
+    for i, ligne_forme in enumerate(forme):
+        for j, case in enumerate(ligne_forme):
+            if case == 1:  # Case remplie
+                x1 = (colonne + j) * TAILLE_CASE + LARGEUR_GRILLE * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE
+                y1 = (ligne + i) * TAILLE_CASE
+                x2 = x1 + TAILLE_CASE
+                y2 = y1 + TAILLE_CASE
+                fltk.rectangle(x1, y1, x2, y2, remplissage=couleur)
+
+def dessiner_separation():
+    """Dessine une séparation entre les grilles des deux joueurs."""
+    fltk.ligne(
+        LARGEUR_GRILLE * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE, 0,
+        LARGEUR_GRILLE * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE, HAUTEUR_ZONE,
+        couleur="white", epaisseur=4
+    )
+
+def boucle_principale_2_joueurs():
+    """Boucle principale pour le mode 2 joueurs."""
+    global forme_actuelle, forme_suiv, game_over, j2_forme_actuelle, j2_forme_suiv, j2_game_over
+    global jeu_en_cours, dernier_temps_pourri, tps_pourr
+
+    configurer_fenetre_2_joueurs()
+    forme_suiv = nouvelle_forme()
+    j2_forme_suiv = nouvelle_forme()
+
+    while jeu_en_cours:
+        fltk.efface_tout()
+
+        if forme_actuelle is None:
+            forme_actuelle = forme_suiv
+            forme_suiv = nouvelle_forme()
+
+        if j2_forme_actuelle is None:
+            j2_forme_actuelle = j2_forme_suiv
+            j2_forme_suiv = nouvelle_forme()
+
+        gerer_clavier()  
+        gerer_clavier_j2() 
+
+        for i in range(HAUTEUR_GRILLE):
+            for j in range(LARGEUR_GRILLE):
+                if grille[i][j] is not None:
+                    x1 = j * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE
+                    y1 = i * TAILLE_CASE
+                    x2 = x1 + TAILLE_CASE
+                    y2 = y1 + TAILLE_CASE
+                    fltk.rectangle(x1, y1, x2, y2, remplissage=grille[i][j])
+
+                if j2_grille[i][j] is not None:
+                    x1 = j * TAILLE_CASE + LARGEUR_GRILLE * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE
+                    y1 = i * TAILLE_CASE
+                    x2 = x1 + TAILLE_CASE
+                    y2 = y1 + TAILLE_CASE
+                    fltk.rectangle(x1, y1, x2, y2, remplissage=j2_grille[i][j])
+
+        for i in range(HAUTEUR_GRILLE + 1):
+            fltk.ligne(
+                LONGUEUR_INFO * TAILLE_CASE, i * TAILLE_CASE,
+                LARGEUR_GRILLE * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE, i * TAILLE_CASE,
+                couleur="white"
+            )
+        for j in range(LARGEUR_GRILLE + 1):
+            fltk.ligne(
+                j * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE, 0,
+                j * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE, HAUTEUR_GRILLE * TAILLE_CASE,
+                couleur="white"
+            )
+
+        for i in range(HAUTEUR_GRILLE + 1):
+            fltk.ligne(
+                LARGEUR_GRILLE * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE, i * TAILLE_CASE,
+                2 * LARGEUR_GRILLE * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE, i * TAILLE_CASE,
+                couleur="white"
+            )
+        for j in range(LARGEUR_GRILLE + 1):
+            fltk.ligne(
+                j * TAILLE_CASE + LARGEUR_GRILLE * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE, 0,
+                j * TAILLE_CASE + LARGEUR_GRILLE * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE, HAUTEUR_GRILLE * TAILLE_CASE,
+                couleur="white"
+            )
+
+        dessiner_separation()
+
+        dessiner_forme(forme_actuelle["forme"], forme_actuelle["couleur"], forme_actuelle["position"])
+        dessiner_forme_j2(j2_forme_actuelle["forme"], j2_forme_actuelle["couleur"], j2_forme_actuelle["position"])
+
+        afficher_info()
+        afficher_info_j2()
+
+        mettre_a_jour_forme()
+        mettre_a_jour_forme_j2()
+        prochain_forme()
+        dessiner_forme_j2(j2_forme_suiv["forme"], j2_forme_suiv["couleur"], (0, LARGEUR_GRILLE + 2))
+
+        fltk.mise_a_jour()
+        fltk.attente(vitesse)
+
+        # Vérification des états de fin de jeu
+        if game_over or j2_game_over:
+            perdu()
+            break
+
+def detecter_connexions_adjacentes():
+    """
+    Détecte et supprime les pièces adjacentes ayant la même couleur,
+    avec au moins deux côtés connectés, mais en excluant les blocs
+    appartenant à une seule et même forme.
+    """
+    global grille, score, elim_couleurs_adjacentes, forme_actuelle
+
+    # Si le bonus n'est pas activé, sortir immédiatement
+    if not elim_couleurs_adjacentes:
+        return
+
+    hauteur = len(grille)
+    largeur = len(grille[0])
+    blocs_a_supprimer = set()
+
+    # Identifier les blocs de la forme actuelle
+    blocs_forme_actuelle = set()
+    if forme_actuelle is not None:
+        ligne_debut, colonne_debut = forme_actuelle["position"]
+        for i, ligne in enumerate(forme_actuelle["forme"]):
+            for j, case in enumerate(ligne):
+                if case == 1:
+                    blocs_forme_actuelle.add((ligne_debut + i, colonne_debut + j))
+
+    # Parcourir chaque bloc de la grille
+    for i in range(hauteur):
+        for j in range(largeur):
+            if grille[i][j] is not None:
+                couleur = grille[i][j]
+                voisins_identiques = []
+
+                # Vérifier les voisins adjacents
+                for di, dj in [(-1, 0), (1, 0), (0, -1), (0, 1)]:  # Haut, Bas, Gauche, Droite
+                    ni, nj = i + di, j + dj
+                    if (
+                        0 <= ni < hauteur and 0 <= nj < largeur and
+                        grille[ni][nj] == couleur and
+                        (ni, nj) not in blocs_forme_actuelle  # Exclure la même forme
+                    ):
+                        voisins_identiques.append((ni, nj))
+
+                # Ajouter les blocs si au moins deux voisins identiques sont trouvés
+                if len(voisins_identiques) >= 2:
+                    blocs_a_supprimer.add((i, j))
+                    blocs_a_supprimer.update(voisins_identiques)
+
+    # Supprimer les blocs détectés
+    for i, j in blocs_a_supprimer:
+        grille[i][j] = None
+
+    # Calcul des points
+    points_supprimes = len(blocs_a_supprimer)
+    if points_supprimes > 0:
+        score += points_supprimes * 50  # Exemple : 50 points par bloc supprimé
+
+
+ #def mettre_a_jour_forme():
+     #global forme_actuelle, grille, forme_suiv, game_over
+
+   #  if forme_actuelle is not None:
+        # ligne, colonne = forme_actuelle["position"]
+        # nouvelle_position = (ligne + 1, colonne)
+
+         #if collisions(forme_actuelle["forme"], nouvelle_position):
+            # Fixer les blocs de la pièce actuelle dans la grille
+            # for i, ligne_forme in enumerate(forme_actuelle["forme"]):
+              #   for j, case in enumerate(ligne_forme):
+                    # if case == 1 and ligne + i < HAUTEUR_GRILLE:
+                    #     grille[ligne + i][colonne + j] = forme_actuelle["couleur"]
+
+           #  if ligne == 0:
+            #     game_over = True
+            #     return
+
+         #    forme_actuelle = forme_suiv
+         #    forme_suiv = nouvelle_forme()
+
+            # Appeler la détection des couleurs adjacentes si le bonus est actif
+        #     detecter_connexions_adjacentes()
+  #       else:
+    #         forme_actuelle["position"] = nouvelle_position
+
+    #ligne_complete()
+
+
+
+
+def afficher_info_j2():
+    """Affiche les informations du joueur 2 dans une zone distincte à droite de l'écran."""
+    global j2_score, j2_niveau, tps_pourr
+
+    # Dessiner le fond noir pour la zone d'information du joueur 2
+    fltk.rectangle(
+        LARGEUR_GRILLE * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE, 0,
+        (LARGEUR_GRILLE * 2 + LONGUEUR_INFO) * TAILLE_CASE, HAUTEUR_ZONE,
+        remplissage="black"
+    )
+
+    # Afficher les informations principales
+    fltk.texte(
+        (LARGEUR_GRILLE * 2 + LONGUEUR_INFO // 2) * TAILLE_CASE, 10,
+        f"Score J2: {j2_score}",
+        couleur="white", taille=14, ancrage="center"
+    )
+    fltk.texte(
+        (LARGEUR_GRILLE * 2 + LONGUEUR_INFO // 2) * TAILLE_CASE, 30,
+        f"Niveau J2: {j2_niveau}",
+        couleur="white", taille=14, ancrage="center"
+    )
+
+    # Afficher les autres informations si nécessaire (par ex. pourrissement)
+    if tps_pourr > 0:
+        fltk.texte(
+            (LARGEUR_GRILLE * 2 + LONGUEUR_INFO // 2) * TAILLE_CASE, 50,
+            f"Pourrissement: {tps_pourr}",
+            couleur="white", taille=14, ancrage="center"
+        )
+
+    # Ligne de séparation visuelle entre la zone d'information et la grille
+    fltk.ligne(
+        LARGEUR_GRILLE * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE, 0,
+        LARGEUR_GRILLE * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE, HAUTEUR_ZONE,
+        couleur="white", epaisseur=4
+    )
+
+def configurer_fenetre_2_joueurs():
+    """Configure les dimensions de la fenêtre pour le mode 2 joueurs."""
+    global LARGEUR_ZONE, HAUTEUR_ZONE
+
+    # Doubler la largeur pour inclure les deux grilles
+    LARGEUR_ZONE = 3 * (LARGEUR_GRILLE * TAILLE_CASE + LONGUEUR_INFO * TAILLE_CASE)
+    HAUTEUR_ZONE = HAUTEUR_GRILLE * TAILLE_CASE
+
+    fltk.ferme_fenetre()
+    fltk.cree_fenetre(LARGEUR_ZONE, HAUTEUR_ZONE)
+
+
+
 if __name__ == "__main__":
     fltk.cree_fenetre(LARGEUR_ZONE, HAUTEUR_ZONE)
     
@@ -776,6 +1098,7 @@ if __name__ == "__main__":
                     else:
                         print("Aucun polyomino personnalisé chargé. Utilisation des formes par défaut.")
                 
+                
                 elif choix_var == 3:
                     print("Retour au menu principal.")
                     break
@@ -791,7 +1114,6 @@ if __name__ == "__main__":
                     config()
                     print("Configuration Sauvegardée")
 
-
                 
                 elif choix_bon == 1:
                     charger_config()
@@ -803,13 +1125,21 @@ if __name__ == "__main__":
                     print(f'Bloc Bonus Activé')
                 
                 elif choix_bon == 3:
+                    print("Couleurs Adjacentes Activé")
+                    elim_couleurs_adjacentes = True
+                
+                elif choix_bon == 4:
                     print("Retour au menu principal.")
                     break
                 
                 else:
                     print("Option invalide, veuillez réessayer.")
-        
-        elif choix == 4:
+
+        elif choix == 4:  
+            print("Démarrage du mode 2 joueurs.")
+            boucle_principale_2_joueurs()
+
+        elif choix == 5:  
             jeu_en_cours = False
         else:
             print("Option invalide, veuillez redémarrer le programme.")
