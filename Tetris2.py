@@ -468,9 +468,14 @@ def ligne_complete():
     if lignes_effacees > 0:
         points_par_lignes = [0, 100, 250, 400, 500][min(lignes_effacees, 4)]
         score += points_par_lignes * niveau if not scoreParniv else points_par_lignes
+        niveau = score//500 +1
 
     if gris_efface:
         bonus_effet()
+    
+    if niveau > 1:
+        vitesse = GRAVITE - 0.05 * (1 *niveau)
+
 
     return lignes_effacees > 0
 
