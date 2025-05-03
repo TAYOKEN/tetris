@@ -1,6 +1,6 @@
 # Tetris FLTK
 
-## Made with Issam BH
+## Made with @Issam-BH
 
 School project in which we had to make the worldwide known game Tetris but with some catch.
 
